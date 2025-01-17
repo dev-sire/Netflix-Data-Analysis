@@ -1,4 +1,4 @@
-select * from netflix_raw;
+use netflix;
 select * from netflix;
 
 -- 1. Count the Number of Movies vs TV Shows
@@ -28,7 +28,21 @@ FROM netflix,
 WHERE n.n <= 1 + (LENGTH(listed_in) - LENGTH(REPLACE(listed_in, ',', '')))
 GROUP BY genre;
 
--- 5. Find the Most Frequent Rating for Movies and TV Shows
+-- 4. Find Average Duration of all content
+
+SELECT
+    CASE
+        WHEN type = 'Movie' THEN 'Movie'
+        ELSE 'TV Show'
+    END AS content_type,
+    AVG(duration) AS avg_duration
+FROM
+    netflix
+GROUP BY
+    content_type;
+
+
+-- 6. Find the Most Frequent Rating for Movies and TV Shows
 WITH RatingCounts AS (
     SELECT 
         type,
@@ -51,7 +65,7 @@ SELECT
 FROM RankedRatings
 WHERE ranked = 1;
 
--- 6. Find the Top 3 Countries with the Most Content on Netflix
+-- 7. Find the Top 3 Countries with the Most Content on Netflix
 
 SELECT country, COUNT(*) AS total_content
 FROM (
@@ -65,7 +79,7 @@ GROUP BY country
 ORDER BY total_content DESC
 LIMIT 3;
 
--- 7. Find each year and the average numbers of content release in United States on netflix.
+-- 8. Find each year and the average numbers of content release in United States on netflix.
 SELECT
     country,
     release_year,
@@ -80,7 +94,7 @@ GROUP BY country, release_year
 ORDER BY avg_release DESC
 limit 5;
 
--- 8. categorize movies as good, bad or adults based on their description and ratings
+-- 9. categorize movies as good, bad or adults based on their description and ratings
 SELECT
     category,
     COUNT(*) AS content_count
@@ -95,7 +109,7 @@ FROM (
 ) AS categorized_content
 GROUP BY category;
 
--- 9. Identify directors who have directed both movies and TV Shows
+-- 10. Identify directors who have directed both movies and TV Shows
 SELECT 
     director,
     COUNT(DISTINCT CASE WHEN type = 'Movie' THEN show_id END) AS no_of_movies,
@@ -109,12 +123,12 @@ GROUP BY
 HAVING 
     COUNT(DISTINCT type) > 1;
     
--- 10. Find the list of directors who have created horror and comedy movies both.
+-- 11. Find the list of directors who have created horror and comedy movies both.
 -- display director names along with number of comedy and horror movies directed by them
 SELECT 
-    SUBSTRING_INDEX(SUBSTRING_INDEX(director, ',', 1), ' ', -1) AS director, 
-    COUNT(DISTINCT CASE WHEN FIND_IN_SET('Comedies', listed_in) THEN show_id END) AS no_of_comedy,
-    COUNT(DISTINCT CASE WHEN FIND_IN_SET('Horror Movies', listed_in) THEN show_id END) AS no_of_horror
+    SUBSTRING_INDEX(SUBSTRING_INDEX(director, ',', 1), ' ', -1) AS Director, 
+    COUNT(DISTINCT CASE WHEN FIND_IN_SET('Comedies', listed_in) THEN show_id END) AS No_Of_Comedy_Genre,
+    COUNT(DISTINCT CASE WHEN FIND_IN_SET('Horror Movies', listed_in) THEN show_id END) AS No_Of_Horror_Genre
 FROM 
     netflix
 WHERE 
@@ -126,3 +140,37 @@ GROUP BY
 HAVING
     COUNT(DISTINCT CASE WHEN FIND_IN_SET('Comedies', listed_in) THEN 1 END) > 0 
     AND COUNT(DISTINCT CASE WHEN FIND_IN_SET('Horror Movies', listed_in) THEN 1 END) > 0;
+    
+-- 12 Find the most prolific directors
+SELECT 
+    director as Director, 
+    COUNT(*) AS Directed_In
+FROM 
+    netflix
+WHERE 
+    director IS NOT NULL 
+GROUP BY 
+    Director
+ORDER BY 
+    Directed_In DESC
+LIMIT 10;
+
+-- 13 Find the most prolific actors
+SELECT 
+    Actor_Name, 
+    COUNT(*) AS Worked_In
+FROM 
+    (
+        SELECT 
+            TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(cast, ',', n.n), ',', -1)) AS Actor_Name
+        FROM 
+            netflix, 
+            (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) AS n
+        WHERE 
+            n.n <= 1 + (LENGTH(cast) - LENGTH(REPLACE(cast, ',', '')))
+    ) AS actors
+GROUP BY 
+    Actor_Name
+ORDER BY
+    Worked_In DESC
+LIMIT 10;
